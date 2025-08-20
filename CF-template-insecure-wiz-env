@@ -73,6 +73,13 @@ Resources:
       SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
 
+  ECRRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+    RepositoryName: "wiz-tech-exercise-app"
+    # Insecure Configuration: We will not add immutability or scan on push
+    # This is a vulnerability you will discuss in your presentation.
+
   # 2. Insecure MongoDB EC2 Instance
   # This section contains the intentionally vulnerable components.
 
