@@ -1,0 +1,223 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Wiz Technical Exercise - Insecure 2-tier application with intentional vulnerabilities.
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the EC2 instance.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+
+Resources:
+
+  # 1. VPC, Subnets, and Network Configuration
+  # This section sets up the network foundation for your environment.
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: WizVPC
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: WizPublicSubnet
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      Tags:
+        - Key: Name
+          Value: WizPrivateSubnet
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Tags:
+      - Key: Name
+        Value: WizInternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # 2. Insecure MongoDB EC2 Instance
+  # This section contains the intentionally vulnerable components.
+
+  MongoDBIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      # Overly permissive policy - key vulnerability
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess 
+      Tags:
+        - Key: Name
+          Value: MongoDBIAMRole
+
+  MongoDBIAMInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref MongoDBIAMRole
+      Tags:
+        - Key: Name
+          Value: MongoDBIAMInstanceProfile
+
+  MongoDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "MongoDBSecurityGroup"
+      GroupDescription: "Allow public SSH access and application traffic"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        # Publicly exposed SSH - major vulnerability
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        # MongoDB traffic from EKS - required for the app
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          SourceSecurityGroupId: !GetAtt EKSSecurityGroup.GroupId
+
+  MongoDBInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      # Outdated OS AMI - vulnerability 
+      ImageId: ami-02a806950005a611c # Example: An outdated Amazon Linux AMI
+      KeyName: !Ref KeyName
+      SubnetId: !Ref PublicSubnet
+      SecurityGroupIds:
+        - !Ref MongoDBSecurityGroup
+      IamInstanceProfile: !Ref MongoDBIAMInstanceProfile
+      Tags:
+        - Key: Name
+          Value: MongoDBInstance
+      # User data to install an outdated MongoDB version
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          # Install outdated MongoDB 3.6 - vulnerability
+          sudo yum update -y
+          sudo yum install -y https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org-3.6.14.tgz
+
+  # 3. Insecure S3 Bucket for Backups
+  # This bucket is intentionally configured with public access.
+
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: Name
+          Value: WizBackupBucket
+      AccessControl: PublicRead # Grants public read access
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  BackupBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BackupBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadList
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "arn:aws:s3:::${BackupBucket}"
+              - !Sub "arn:aws:s3:::${BackupBucket}/*"
+
+  # 4. EKS Cluster in Private Subnet
+  # The cluster itself is in a private subnet, but the app inside is vulnerable.
+
+  EKSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "EKSSecurityGroup"
+      GroupDescription: "Security group for EKS cluster"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          CidrIp: 10.0.1.0/24 # Allows traffic to the MongoDB instance
+
+  EKSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      Tags:
+        - Key: Name
+          Value: EKSRole
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: WizEKSCluster
+      RoleArn: !GetAtt EKSRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet
+      Tags:
+        - Key: Name
+          Value: WizEKSCluster

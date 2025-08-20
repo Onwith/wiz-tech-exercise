@@ -1,0 +1,13 @@
+{
+    "name": "todo-app",
+    "version": "1.0.0",
+    "description": "A simple Node.js todo app for the Wiz technical exercise.",
+    "main": "app.js",
+    "scripts": {
+      "start": "node app.js"
+    },
+    "dependencies": {
+      "express": "^4.18.2",
+      "mongoose": "^6.0.0"
+    }
+  }
