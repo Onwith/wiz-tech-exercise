@@ -33,4 +33,4 @@ jobs:
             --template-file CF-template-insecure-wiz-env \
             --stack-name WizInsecureStack \
             --capabilities CAPABILITY_IAM \
-            --parameter-overrides KeyName=wiz-ssh-key
+            --parameter-overrides KeyName=wiz-ssh-key1
