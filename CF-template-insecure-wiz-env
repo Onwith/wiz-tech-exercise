@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: |
   Wiz Technical Exercise - Insecure 2-tier application with intentional vulnerabilities.
 
@@ -70,7 +70,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -123,16 +123,16 @@ Resources:
   BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketName: your-backup-bucket-name
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
       PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        IgnorePublicAcls: false
-        BlockPublicPolicy: false
-        RestrictPublicBuckets: false
-      AccessControl: PublicRead
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    # Add other properties as needed
 
   BackupBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -140,15 +140,13 @@ Resources:
       Bucket: !Ref BackupBucket
       PolicyDocument:
         Statement:
-          - Sid: PublicReadList
-            Effect: Allow
-            Principal: "*"
+          - Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
             Action:
-              - s3:GetObject
-              - s3:ListBucket
-            Resource:
-              - !Sub "arn:aws:s3:::${BackupBucket}"
-              - !Sub "arn:aws:s3:::${BackupBucket}/*"
+              - s3:GetBucketVersioning
+              - s3:PutBucketVersioning
+            Resource: !GetAtt BackupBucket.Arn
 
   # 4. EKS Cluster in Private Subnet
   EKSSecurityGroup:
@@ -167,7 +165,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -188,4 +186,3 @@ Resources:
           - !Ref EKSSecurityGroup
         SubnetIds:
           - !Ref PrivateSubnet
-
