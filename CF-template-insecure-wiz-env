@@ -9,10 +9,8 @@ Parameters:
     ConstraintDescription: Must be the name of an existing EC2 KeyPair.
 
 Resources:
-
   # 1. VPC, Subnets, and Network Configuration
   # This section sets up the network foundation for your environment.
-
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -73,19 +71,15 @@ Resources:
       SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
 
- ECRRepository:
+  ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
       RepositoryName: "wiz-tech-exercise-app"
       ImageScanningConfiguration:
-        ScanOnPush: false 
-    # This is a valid, non-null property
-    # Insecure Configuration: We will not add immutability or scan on push
-    # This is a vulnerability you will discuss in your presentation.
+        ScanOnPush: false
 
   # 2. Insecure MongoDB EC2 Instance
   # This section contains the intentionally vulnerable components.
-
   MongoDBIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -98,9 +92,8 @@ Resources:
                 - ec2.amazonaws.com
             Action:
               - sts:AssumeRole
-      # Overly permissive policy - key vulnerability
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEC2FullAccess 
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
       Tags:
         - Key: Name
           Value: MongoDBIAMRole
@@ -121,12 +114,10 @@ Resources:
       GroupDescription: "Allow public SSH access and application traffic"
       VpcId: !Ref VPC
       SecurityGroupIngress:
-        # Publicly exposed SSH - major vulnerability
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        # MongoDB traffic from EKS - required for the app
         - IpProtocol: tcp
           FromPort: 27017
           ToPort: 27017
@@ -136,8 +127,7 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
-      # Outdated OS AMI - vulnerability 
-      ImageId: ami-02a806950005a611c # Example: An outdated Amazon Linux AMI
+      ImageId: ami-02a806950005a611c
       KeyName: !Ref KeyName
       SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
@@ -146,24 +136,21 @@ Resources:
       Tags:
         - Key: Name
           Value: MongoDBInstance
-      # User data to install an outdated MongoDB version
       UserData:
         Fn::Base64: |
           #!/bin/bash
-          # Install outdated MongoDB 3.6 - vulnerability
           sudo yum update -y
           sudo yum install -y https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org-3.6.14.tgz
 
   # 3. Insecure S3 Bucket for Backups
   # This bucket is intentionally configured with public access.
-
   BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
       Tags:
         - Key: Name
           Value: WizBackupBucket
-      AccessControl: PublicRead # Grants public read access
+      AccessControl: PublicRead
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -187,7 +174,6 @@ Resources:
 
   # 4. EKS Cluster in Private Subnet
   # The cluster itself is in a private subnet, but the app inside is vulnerable.
-
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -198,7 +184,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 27017
           ToPort: 27017
-          CidrIp: 10.0.1.0/24 # Allows traffic to the MongoDB instance
+          CidrIp: 10.0.1.0/24
 
   EKSRole:
     Type: AWS::IAM::Role
