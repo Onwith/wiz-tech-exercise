@@ -74,7 +74,7 @@ Resources:
   ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-      RepositoryName: "wiz-tech-exercise-app"
+      RepositoryName: wiz-tech-exercise-app
       ImageScanningConfiguration:
         ScanOnPush: false
 
@@ -110,8 +110,8 @@ Resources:
   MongoDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "MongoDBSecurityGroup"
-      GroupDescription: "Allow public SSH access and application traffic"
+      GroupName: MongoDBSecurityGroup
+      GroupDescription: Allow public SSH access and application traffic
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -136,11 +136,10 @@ Resources:
       Tags:
         - Key: Name
           Value: MongoDBInstance
-      UserData:
-        Fn::Base64: |
-          #!/bin/bash
-          sudo yum update -y
-          sudo yum install -y https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org-3.6.14.tgz
+      UserData: !Base64 |
+        #!/bin/bash
+        sudo yum update -y
+        sudo yum install -y https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org-3.6.14.tgz
 
   # 3. Insecure S3 Bucket for Backups
   # This bucket is intentionally configured with public access.
@@ -164,21 +163,21 @@ Resources:
         Statement:
           - Sid: PublicReadList
             Effect: Allow
-            Principal: "*"
+            Principal: '*'
             Action:
               - s3:GetObject
               - s3:ListBucket
             Resource:
-              - !Sub "arn:aws:s3:::${BackupBucket}"
-              - !Sub "arn:aws:s3:::${BackupBucket}/*"
+              - !Sub arn:aws:s3:::${BackupBucket}
+              - !Sub arn:aws:s3:::${BackupBucket}/*
 
   # 4. EKS Cluster in Private Subnet
   # The cluster itself is in a private subnet, but the app inside is vulnerable.
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "EKSSecurityGroup"
-      GroupDescription: "Security group for EKS cluster"
+      GroupName: EKSSecurityGroup
+      GroupDescription: Security group for EKS cluster
       VpcId: !Ref VPC
       SecurityGroupEgress:
         - IpProtocol: tcp
