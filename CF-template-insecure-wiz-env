@@ -73,10 +73,13 @@ Resources:
       SubnetId: !Ref PublicSubnet
       RouteTableId: !Ref PublicRouteTable
 
-  ECRRepository:
+ ECRRepository:
     Type: AWS::ECR::Repository
     Properties:
-    RepositoryName: "wiz-tech-exercise-app"
+      RepositoryName: "wiz-tech-exercise-app"
+      ImageScanningConfiguration:
+        ScanOnPush: false 
+    # This is a valid, non-null property
     # Insecure Configuration: We will not add immutability or scan on push
     # This is a vulnerability you will discuss in your presentation.
 
