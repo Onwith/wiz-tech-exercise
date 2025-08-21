@@ -123,7 +123,6 @@ Resources:
   BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
-      AccessControl: PublicRead
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -183,4 +182,4 @@ Resources:
           - !Ref EKSSecurityGroup
         SubnetIds:
           - !Ref PrivateSubnet
-          
+
