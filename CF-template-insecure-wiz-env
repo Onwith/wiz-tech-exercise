@@ -123,7 +123,7 @@ Resources:
   BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: WizBackupBucket
+      BucketName: wizbackupbucket
       OwnershipControls:
         Rules:
           - ObjectOwnership: BucketOwnerEnforced
