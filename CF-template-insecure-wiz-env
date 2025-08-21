@@ -183,3 +183,4 @@ Resources:
           - !Ref EKSSecurityGroup
         SubnetIds:
           - !Ref PrivateSubnet
+          
