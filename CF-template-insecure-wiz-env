@@ -10,7 +10,6 @@ Parameters:
 
 Resources:
   # 1. VPC, Subnets, and Network Configuration
-  # This section sets up the network foundation for your environment.
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -42,9 +41,10 @@ Resources:
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-    Tags:
-      - Key: Name
-        Value: WizInternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: WizInternetGateway
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -56,6 +56,9 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: WizPublicRouteTable
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -77,9 +80,11 @@ Resources:
       RepositoryName: "wiz-tech-exercise-app"
       ImageScanningConfiguration:
         ScanOnPush: false
+      Tags:
+        - Key: Name
+          Value: WizECRRepository
 
   # 2. Insecure MongoDB EC2 Instance
-  # This section contains the intentionally vulnerable components.
   MongoDBIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -103,9 +108,7 @@ Resources:
     Properties:
       Roles:
         - !Ref MongoDBIAMRole
-      Tags:
-        - Key: Name
-          Value: MongoDBIAMInstanceProfile
+      # Tags removed — not supported on InstanceProfile
 
   MongoDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -122,6 +125,9 @@ Resources:
           FromPort: 27017
           ToPort: 27017
           SourceSecurityGroupId: !GetAtt EKSSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: MongoDBSecurityGroup
 
   MongoDBInstance:
     Type: AWS::EC2::Instance
@@ -143,18 +149,17 @@ Resources:
           sudo yum install -y https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org-3.6.14.tgz
 
   # 3. Insecure S3 Bucket for Backups
-  # This bucket is intentionally configured with public access.
   BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
-      Tags:
-        - Key: Name
-          Value: WizBackupBucket
       AccessControl: PublicRead
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      Tags:
+        - Key: Name
+          Value: WizBackupBucket
 
   BackupBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -173,7 +178,6 @@ Resources:
               - !Sub "arn:aws:s3:::${BackupBucket}/*"
 
   # 4. EKS Cluster in Private Subnet
-  # The cluster itself is in a private subnet, but the app inside is vulnerable.
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -185,6 +189,9 @@ Resources:
           FromPort: 27017
           ToPort: 27017
           CidrIp: 10.0.1.0/24
+      Tags:
+        - Key: Name
+          Value: EKSSecurityGroup
 
   EKSRole:
     Type: AWS::IAM::Role
