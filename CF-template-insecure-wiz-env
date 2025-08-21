@@ -16,9 +16,6 @@ Resources:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: WizVPC
 
   PublicSubnet:
     Type: AWS::EC2::Subnet
@@ -26,25 +23,15 @@ Resources:
       VpcId: !Ref VPC
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: WizPublicSubnet
 
   PrivateSubnet:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
       CidrBlock: 10.0.2.0/24
-      Tags:
-        - Key: Name
-          Value: WizPrivateSubnet
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: WizInternetGateway
 
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -56,9 +43,6 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: WizPublicRouteTable
 
   PublicRoute:
     Type: AWS::EC2::Route
@@ -80,9 +64,6 @@ Resources:
       RepositoryName: "wiz-tech-exercise-app"
       ImageScanningConfiguration:
         ScanOnPush: false
-      Tags:
-        - Key: Name
-          Value: WizECRRepository
 
   # 2. Insecure MongoDB EC2 Instance
   MongoDBIAMRole:
@@ -99,16 +80,12 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
-      Tags:
-        - Key: Name
-          Value: MongoDBIAMRole
 
   MongoDBIAMInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
         - !Ref MongoDBIAMRole
-      # Tags removed — not supported on InstanceProfile
 
   MongoDBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -125,9 +102,6 @@ Resources:
           FromPort: 27017
           ToPort: 27017
           SourceSecurityGroupId: !GetAtt EKSSecurityGroup.GroupId
-      Tags:
-        - Key: Name
-          Value: MongoDBSecurityGroup
 
   MongoDBInstance:
     Type: AWS::EC2::Instance
@@ -139,9 +113,6 @@ Resources:
       SecurityGroupIds:
         - !Ref MongoDBSecurityGroup
       IamInstanceProfile: !Ref MongoDBIAMInstanceProfile
-      Tags:
-        - Key: Name
-          Value: MongoDBInstance
       UserData:
         Fn::Base64: |
           #!/bin/bash
@@ -157,9 +128,6 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
-      Tags:
-        - Key: Name
-          Value: WizBackupBucket
 
   BackupBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -189,9 +157,6 @@ Resources:
           FromPort: 27017
           ToPort: 27017
           CidrIp: 10.0.1.0/24
-      Tags:
-        - Key: Name
-          Value: EKSSecurityGroup
 
   EKSRole:
     Type: AWS::IAM::Role
@@ -207,9 +172,6 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-      Tags:
-        - Key: Name
-          Value: EKSRole
 
   EKSCluster:
     Type: AWS::EKS::Cluster
@@ -221,6 +183,3 @@ Resources:
           - !Ref EKSSecurityGroup
         SubnetIds:
           - !Ref PrivateSubnet
-      Tags:
-        - Key: Name
-          Value: WizEKSCluster
