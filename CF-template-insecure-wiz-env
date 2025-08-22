@@ -9,7 +9,6 @@ Parameters:
     ConstraintDescription: Must be the name of an existing EC2 KeyPair.
 
 Resources:
-  # 1. VPC, Subnets, and Network Configuration
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -76,6 +75,45 @@ Resources:
       RepositoryName: "wiz-tech-exercise-app"
       ImageScanningConfiguration:
         ScanOnPush: false
+
+  EKSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+  EKSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "EKSSecurityGroup"
+      GroupDescription: "Security group for EKS cluster"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          CidrIp: 10.0.1.0/24
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    Properties:
+      Name: WizEKSCluster
+      RoleArn: !GetAtt EKSRole.Arn
+      ResourcesVpcConfig:
+        SecurityGroupIds:
+          - !Ref EKSSecurityGroup
+        SubnetIds:
+          - !Ref PublicSubnet
+          - !Ref PrivateSubnet
 
   EKSNodeGroupRole:
     Type: AWS::IAM::Role
@@ -144,20 +182,6 @@ Resources:
         - Key: Name
           Value: "ALBControllerIAMRole"
 
-Outputs:
-  ALBControllerRoleArn:
-    Description: ARN of IAM Role for AWS Load Balancer Controller
-    Value: !GetAtt ALBControllerIAMRole.Arn
-
-  VPCId:
-    Description: VPC ID
-    Value: !Ref VPC
-
-  PublicSubnetId:
-    Description: Public Subnet ID
-    Value: !Ref PublicSubnet
-
-  # 2. Insecure MongoDB EC2 Instance
   MongoDBIAMRole:
     Type: AWS::IAM::Role
     Properties:
@@ -211,7 +235,6 @@ Outputs:
           sudo yum update -y
           sudo yum install -y https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org-3.6.14.tgz
 
-  # 3. Insecure S3 Bucket for Backups
   BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -224,7 +247,6 @@ Outputs:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-    # Add other properties as needed
 
   BackupBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -238,44 +260,15 @@ Outputs:
             Action:
               - s3:GetBucketVersioning
               - s3:PutBucketVersioning
-            Resource: !GetAtt BackupBucket.Arn
+Outputs:
+  ALBControllerRoleArn:
+    Description: ARN of IAM Role for AWS Load Balancer Controller
+    Value: !GetAtt ALBControllerIAMRole.Arn
 
-  # 4. EKS Cluster in Private Subnet
-  EKSSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: "EKSSecurityGroup"
-      GroupDescription: "Security group for EKS cluster"
-      VpcId: !Ref VPC
-      SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 27017
-          ToPort: 27017
-          CidrIp: 10.0.1.0/24
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
 
-  EKSRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - eks.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
-
-  EKSCluster:
-    Type: AWS::EKS::Cluster
-    Properties:
-      Name: WizEKSCluster
-      RoleArn: !GetAtt EKSRole.Arn
-      ResourcesVpcConfig:
-        SecurityGroupIds:
-          - !Ref EKSSecurityGroup
-        SubnetIds:
-          - !Ref PublicSubnet
-          - !Ref PrivateSubnet
+  PublicSubnetId:
+    Description: Public Subnet ID
+    Value: !Ref PublicSubnet
