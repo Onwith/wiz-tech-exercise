@@ -144,7 +144,7 @@ Resources:
         MaxSize: 3
       InstanceTypes:
         - t3.medium
-      AmiType: AL2_x86_64
+      AmiType: AL2023_x86_64_STANDARD
       RemoteAccess:
         Ec2SshKey: !Ref KeyName
       Tags:
