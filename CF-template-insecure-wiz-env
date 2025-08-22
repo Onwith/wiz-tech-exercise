@@ -15,6 +15,9 @@ Resources:
       CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: "WizVPC"
 
   PublicSubnet:
     Type: AWS::EC2::Subnet
@@ -28,6 +31,8 @@ Resources:
           Value: "1"
         - Key: "kubernetes.io/cluster/WizEKSCluster"
           Value: "owned"
+        - Key: Name
+          Value: "WizPublicSubnet"
 
   PrivateSubnet:
     Type: AWS::EC2::Subnet
@@ -40,6 +45,8 @@ Resources:
           Value: "1"
         - Key: "kubernetes.io/cluster/WizEKSCluster"
           Value: "owned"
+        - Key: Name
+          Value: "WizPrivateSubnet"
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -49,6 +56,42 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
+
+  NatEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: "WizNATEIP"
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: "WizNATGateway"
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: NatGateway
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -84,12 +127,14 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              Service:
-                - eks.amazonaws.com
+              Service: eks.amazonaws.com
             Action:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      Tags:
+        - Key: Name
+          Value: "WizEKSClusterRole"
 
   EKSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -103,10 +148,37 @@ Resources:
           ToPort: 27017
           CidrIp: 10.0.1.0/24
 
+  NodeGroupSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow EKS node communication
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+  
+  NodeGroupLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: "wiz-nodegroup-template"
+      LaunchTemplateData:
+        SecurityGroupIds:
+          - !Ref NodeGroupSecurityGroup
+          - !Ref EKSSecurityGroup
+        InstanceType: t3.medium
+
   EKSCluster:
     Type: AWS::EKS::Cluster
     Properties:
       Name: WizEKSCluster
+      ClusterVersion: "1.33"
       RoleArn: !GetAtt EKSRole.Arn
       ResourcesVpcConfig:
         SecurityGroupIds:
@@ -114,6 +186,9 @@ Resources:
         SubnetIds:
           - !Ref PublicSubnet
           - !Ref PrivateSubnet
+      Tags:
+        - Key: Name
+          Value: "WizEKSCluster"
 
   EKSNodeGroupRole:
     Type: AWS::IAM::Role
@@ -129,8 +204,12 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+      Tags:
+        - Key: Name
+          Value: "WizEKSClusterRole"
 
   EKSNodeGroup:
+    DependsOn: EKSCluster
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: WizEKSCluster
@@ -149,6 +228,10 @@ Resources:
         Ec2SshKey: !Ref KeyName
       Tags:
         Name: "wiz-nodegroup"
+      LaunchTemplate:
+       LaunchTemplateSpecification:
+         LaunchTemplateName: !Ref NodeGroupLaunchTemplate
+         Version: "1"
 
   OIDCProvider:
     Type: AWS::IAM::OIDCProvider
@@ -195,6 +278,9 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+      Tags:
+        - Key: Name
+          Value: "WizEKSClusterRole"
 
   MongoDBIAMInstanceProfile:
     Type: AWS::IAM::InstanceProfile
