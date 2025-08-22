@@ -178,7 +178,6 @@ Resources:
     Type: AWS::EKS::Cluster
     Properties:
       Name: WizEKSCluster
-      ClusterVersion: "1.33"
       RoleArn: !GetAtt EKSRole.Arn
       ResourcesVpcConfig:
         SecurityGroupIds:
