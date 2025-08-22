@@ -27,6 +27,8 @@ Resources:
       Tags:
         - Key: "kubernetes.io/role/elb"
           Value: "1"
+        - Key: "kubernetes.io/cluster/WizEKSCluster"
+          Value: "owned"
 
   PrivateSubnet:
     Type: AWS::EC2::Subnet
@@ -37,6 +39,8 @@ Resources:
       Tags:
         - Key: "kubernetes.io/role/internal-elb"
           Value: "1"
+        - Key: "kubernetes.io/cluster/WizEKSCluster"
+          Value: "owned"
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
