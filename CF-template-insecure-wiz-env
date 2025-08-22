@@ -221,8 +221,6 @@ Resources:
         MinSize: 2
         DesiredSize: 2
         MaxSize: 3
-      InstanceTypes:
-        - t3.medium
       AmiType: AL2023_x86_64_STANDARD
       LaunchTemplate:
         Id: !Ref NodeGroupLaunchTemplate
