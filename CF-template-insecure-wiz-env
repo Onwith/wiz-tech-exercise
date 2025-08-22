@@ -177,7 +177,17 @@ Resources:
       GroupId: !Ref NodeGroupSecurityGroup
       IpProtocol: -1
       SourceSecurityGroupId: !Ref EKSSecurityGroup
-  
+
+  ControlPlaneToWebhookPortIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref NodeGroupSecurityGroup
+      IpProtocol: tcp
+      FromPort: 9443
+      ToPort: 9443
+      SourceSecurityGroupId: !Ref EKSSecurityGroup
+      Description: Allow EKS control plane to access webhook on port 9443
+
   NodeGroupLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
