@@ -148,8 +148,7 @@ Resources:
       RemoteAccess:
         Ec2SshKey: !Ref KeyName
       Tags:
-        - Key: Name
-          Value: "wiz-nodegroup"
+        Name: "wiz-nodegroup"
 
   OIDCProvider:
     Type: AWS::IAM::OIDCProvider
