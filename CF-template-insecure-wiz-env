@@ -77,6 +77,74 @@ Resources:
       ImageScanningConfiguration:
         ScanOnPush: false
 
+EKSNodeGroupRole:
+  Type: AWS::IAM::Role
+  Properties:
+    AssumeRolePolicyDocument:
+      Version: "2012-10-17"
+      Statement:
+        - Effect: Allow
+          Principal:
+            Service: ec2.amazonaws.com
+          Action: sts:AssumeRole
+    ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+
+EKSNodeGroup:
+  Type: AWS::EKS::Nodegroup
+  Properties:
+    ClusterName: !Ref EKSCluster
+    NodegroupName: "wiz-nodegroup"
+    NodeRole: !GetAtt EKSNodeGroupRole.Arn
+    Subnets:
+      - !Ref PrivateSubnet
+    ScalingConfig:
+      MinSize: 2
+      DesiredSize: 2
+      MaxSize: 3
+    InstanceTypes:
+      - t3.medium
+    AmiType: AL2_x86_64
+    RemoteAccess:
+      Ec2SshKey: !Ref KeyName
+    Tags:
+      - Key: Name
+        Value: "wiz-nodegroup"
+
+OIDCProvider:
+  Type: AWS::IAM::OIDCProvider
+  Properties:
+    Url: !Sub "https://oidc.eks.us-east-1.amazonaws.com/id/D691A2316649A34CABA61802AA77D90A"
+    ClientIdList:
+      - sts.amazonaws.com
+    ThumbprintList:
+      - "9e99a48a9960b14926bb7f3b02e22da0ecd4e4c0"
+
+ALBControllerIAMRole:
+  Type: AWS::IAM::Role
+  Properties:
+    AssumeRolePolicyDocument:
+      Version: "2012-10-17"
+      Statement:
+        - Effect: Allow
+          Principal:
+            Federated: !Ref OIDCProvider
+          Action: sts:AssumeRoleWithWebIdentity
+          Condition:
+            StringEquals:
+              oidc.eks.us-east-1.amazonaws.com/id/D691A2316649A34CABA61802AA77D90A:sub: system:serviceaccount:kube-system:aws-load-balancer-controller
+    ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/ElasticLoadBalancingFullAccess
+      - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+Outputs:
+  ALBControllerRoleArn:
+    Description: ARN of IAM Role for AWS Load Balancer Controller
+    Value: !GetAtt ALBControllerIAMRole.Arn
+
   # 2. Insecure MongoDB EC2 Instance
   MongoDBIAMRole:
     Type: AWS::IAM::Role
