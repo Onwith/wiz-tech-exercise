@@ -252,6 +252,7 @@ Resources:
     Properties:
       Bucket: !Ref BackupBucket
       PolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -259,6 +260,8 @@ Resources:
             Action:
               - s3:GetBucketVersioning
               - s3:PutBucketVersioning
+            Resource: !Sub "${BackupBucket.Arn}"
+
 Outputs:
   ALBControllerRoleArn:
     Description: ARN of IAM Role for AWS Load Balancer Controller
