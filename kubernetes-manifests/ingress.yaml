@@ -10,6 +10,7 @@ metadata:
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
     alb.ingress.kubernetes.io/subnets: "subnet-02d4e5f63dc452b94"
 spec:
+  ingressClassName: alb
   rules:
     - http:
         paths:
