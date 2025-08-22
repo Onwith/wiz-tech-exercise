@@ -15,7 +15,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: todo-app
-          image: "your-ecr-repo-name:latest"
+          image: "491085397166.dkr.ecr.us-east-1.amazonaws.com/wiz-tech-exercise-app:e424410a5e1cd01dc5c2533d0fdd3285c421ac2e"
           ports:
             - containerPort: 3000
           env:
