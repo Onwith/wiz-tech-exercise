@@ -167,12 +167,13 @@ Resources:
   NodeGroupLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: "wiz-nodegroup-template"
+      LaunchTemplateName: wiz-nodegroup-template
       LaunchTemplateData:
+        InstanceType: t3.medium
         SecurityGroupIds:
           - !Ref NodeGroupSecurityGroup
           - !Ref EKSSecurityGroup
-        InstanceType: t3.medium
+        KeyName: !Ref KeyName
 
   EKSCluster:
     Type: AWS::EKS::Cluster
@@ -203,6 +204,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       Tags:
         - Key: Name
           Value: "WizEKSClusterRole"
@@ -222,8 +224,6 @@ Resources:
       InstanceTypes:
         - t3.medium
       AmiType: AL2023_x86_64_STANDARD
-      RemoteAccess:
-        Ec2SshKey: !Ref KeyName
       LaunchTemplate:
         Id: !Ref NodeGroupLaunchTemplate
         Version: !GetAtt NodeGroupLaunchTemplate.LatestVersionNumber
