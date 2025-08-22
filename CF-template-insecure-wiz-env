@@ -208,11 +208,10 @@ Resources:
           Value: "WizEKSClusterRole"
 
   EKSNodeGroup:
-    DependsOn: EKSCluster
     Type: AWS::EKS::Nodegroup
     Properties:
       ClusterName: WizEKSCluster
-      NodegroupName: "wiz-nodegroup"
+      NodegroupName: wiz-nodegroup
       NodeRole: !GetAtt EKSNodeGroupRole.Arn
       Subnets:
         - !Ref PrivateSubnet
@@ -226,10 +225,13 @@ Resources:
       RemoteAccess:
         Ec2SshKey: !Ref KeyName
       Tags:
-        Name: "wiz-nodegroup"
+        - Key: Name
+          Value: wiz-nodegroup
+        - Key: Environment
+          Value: dev
       LaunchTemplate:
-        LaunchTemplateName: !Ref NodeGroupLaunchTemplate
-        Version: "1"
+        Id: !Ref NodeGroupLaunchTemplate
+        Version: !GetAtt NodeGroupLaunchTemplate.LatestVersionNumber
 
   OIDCProvider:
     Type: AWS::IAM::OIDCProvider
