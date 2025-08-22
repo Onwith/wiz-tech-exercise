@@ -224,11 +224,6 @@ Resources:
       AmiType: AL2023_x86_64_STANDARD
       RemoteAccess:
         Ec2SshKey: !Ref KeyName
-      Tags:
-        - Key: Name
-          Value: wiz-nodegroup
-        - Key: Environment
-          Value: dev
       LaunchTemplate:
         Id: !Ref NodeGroupLaunchTemplate
         Version: !GetAtt NodeGroupLaunchTemplate.LatestVersionNumber
