@@ -15,7 +15,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: todo-app
-          image: your-ecr-repo-name:latest
+          image: "your-ecr-repo-name:latest"
           ports:
             - containerPort: 3000
           env:
