@@ -228,9 +228,8 @@ Resources:
       Tags:
         Name: "wiz-nodegroup"
       LaunchTemplate:
-       LaunchTemplateSpecification:
-         LaunchTemplateName: !Ref NodeGroupLaunchTemplate
-         Version: "1"
+        LaunchTemplateName: !Ref NodeGroupLaunchTemplate
+        Version: "1"
 
   OIDCProvider:
     Type: AWS::IAM::OIDCProvider
