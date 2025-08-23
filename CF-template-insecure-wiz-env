@@ -344,12 +344,14 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           yum update -y
-        # Install MongoDB (legacy version)
+
+          # Install MongoDB (legacy version)
           curl -O https://repo.mongodb.org/yum/amazon/2013.03/mongodb-org/3.6.14/mongodb-org-3.6.14-1.amzn1.x86_64.rpm
           yum install -y mongodb-org-3.6.14-1.amzn1.x86_64.rpm
           systemctl enable mongod
           systemctl start mongod
-        # Install and start SSM Agent
+
+          # Install and start SSM Agent
           yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
           systemctl enable amazon-ssm-agent
           systemctl start amazon-ssm-agent
